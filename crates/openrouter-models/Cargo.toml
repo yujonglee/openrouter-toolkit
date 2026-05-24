@@ -1,0 +1,13 @@
+[package]
+name = "openrouter-models"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+rstest = { workspace = true }
+schemars = { workspace = true }
