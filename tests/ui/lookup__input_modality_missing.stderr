@@ -1,0 +1,5 @@
+error: OpenRouter model `qwen/qwen3.7-max` does not support required capability(s): input::image
+ --> tests/ui/lookup__input_modality_missing.rs:3:37
+  |
+3 | const MODEL: &str = model_supports!("qwen/qwen3.7-max", input::image);
+  |                                     ^^^^^^^^^^^^^^^^^^

@@ -1,5 +1,0 @@
-error: OpenRouter model `openrouter/pareto-code` does not support required parameter(s): structured_outputs, tools
- --> tests/ui/model_supports_all_missing.rs:3:37
-  |
-3 | const MODEL: &str = model_supports!("openrouter/pareto-code", "structured_outputs", "tools");
-  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^

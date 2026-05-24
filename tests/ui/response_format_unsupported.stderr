@@ -1,5 +1,0 @@
-error: OpenRouter model `perceptron/perceptron-mk1` does not support `response_format`
- --> tests/ui/response_format_unsupported.rs:3:44
-  |
-3 | const MODEL: &str = response_format_model!("perceptron/perceptron-mk1");
-  |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^

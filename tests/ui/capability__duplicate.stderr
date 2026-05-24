@@ -1,0 +1,5 @@
+error: duplicate OpenRouter capability `param::tools`
+ --> tests/ui/capability__duplicate.rs:3:71
+  |
+3 | const MODEL: &str = model_supports!("qwen/qwen3.7-max", param::tools, param::tools);
+  |                                                                       ^^^^^

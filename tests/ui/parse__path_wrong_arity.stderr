@@ -1,0 +1,5 @@
+error: expected OpenRouter capability path in the form `param::name`, `input::name`, or `output::name`
+ --> tests/ui/parse__path_wrong_arity.rs:3:57
+  |
+3 | const MODEL: &str = model_supports!("qwen/qwen3.7-max", param::capability::tools);
+  |                                                         ^^^^^

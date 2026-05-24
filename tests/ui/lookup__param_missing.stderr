@@ -1,0 +1,5 @@
+error: OpenRouter model `perceptron/perceptron-mk1` does not support required capability(s): param::tools
+ --> tests/ui/lookup__param_missing.rs:4:5
+  |
+4 |     "perceptron/perceptron-mk1",
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^

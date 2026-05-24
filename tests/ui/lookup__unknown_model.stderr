@@ -1,0 +1,5 @@
+error: unknown OpenRouter model `example/not-a-real-model`
+ --> tests/ui/lookup__unknown_model.rs:3:37
+  |
+3 | const MODEL: &str = model_supports!("example/not-a-real-model", param::tools);
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^

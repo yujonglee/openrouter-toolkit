@@ -17,11 +17,45 @@ struct ModelsResponse {
 struct Model {
     id: String,
     supported_parameters: Option<Vec<String>>,
+    architecture: Option<ModelArchitecture>,
+}
+
+#[derive(Deserialize)]
+struct ModelArchitecture {
+    input_modalities: Option<Vec<String>>,
+    output_modalities: Option<Vec<String>>,
 }
 
 #[derive(Debug)]
-struct ModelIndex {
-    models: HashMap<String, HashSet<String>>,
+pub(crate) struct ModelIndex {
+    models: HashMap<String, ModelCapabilities>,
+    known_params: HashSet<String>,
+    known_input_modalities: HashSet<String>,
+    known_output_modalities: HashSet<String>,
+}
+
+#[derive(Debug)]
+struct ModelCapabilities {
+    params: HashSet<String>,
+    input_modalities: HashSet<String>,
+    output_modalities: HashSet<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) enum Namespace {
+    Param,
+    Input,
+    Output,
+}
+
+impl Namespace {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::Param => "param",
+            Self::Input => "input",
+            Self::Output => "output",
+        }
+    }
 }
 
 impl ModelIndex {
@@ -29,47 +63,94 @@ impl ModelIndex {
         Self::parse_json(MODELS_JSON)
     }
 
-    fn parse_json(json: &str) -> Result<Self, ModelLookupError> {
+    pub(crate) fn parse_json(json: &str) -> Result<Self, ModelLookupError> {
         let models: ModelsResponse = serde_json::from_str(json)
             .map_err(|err| ModelLookupError::InvalidModelsJson(err.to_string()))?;
 
-        Ok(Self {
-            models: models
-                .data
-                .into_iter()
-                .map(|model| {
-                    let supported_parameters = model
-                        .supported_parameters
-                        .unwrap_or_default()
-                        .into_iter()
-                        .collect();
+        let mut known_params = HashSet::new();
+        let mut known_input_modalities = HashSet::new();
+        let mut known_output_modalities = HashSet::new();
+        let mut indexed_models = HashMap::new();
 
-                    (model.id, supported_parameters)
-                })
-                .collect(),
+        for model in models.data {
+            let params: HashSet<_> = model
+                .supported_parameters
+                .unwrap_or_default()
+                .into_iter()
+                .collect();
+            let architecture = model.architecture;
+            let input_modalities: HashSet<_> = architecture
+                .as_ref()
+                .and_then(|architecture| architecture.input_modalities.clone())
+                .unwrap_or_default()
+                .into_iter()
+                .collect();
+            let output_modalities: HashSet<_> = architecture
+                .and_then(|architecture| architecture.output_modalities)
+                .unwrap_or_default()
+                .into_iter()
+                .collect();
+
+            known_params.extend(params.iter().cloned());
+            known_input_modalities.extend(input_modalities.iter().cloned());
+            known_output_modalities.extend(output_modalities.iter().cloned());
+
+            indexed_models.insert(
+                model.id,
+                ModelCapabilities {
+                    params,
+                    input_modalities,
+                    output_modalities,
+                },
+            );
+        }
+
+        Ok(Self {
+            models: indexed_models,
+            known_params,
+            known_input_modalities,
+            known_output_modalities,
         })
     }
 
-    fn supports_parameters(
+    pub(crate) fn missing_capabilities(
         &self,
         model_id: &str,
-        required_parameters: &[&str],
-    ) -> Result<Vec<String>, ModelLookupError> {
+        required_capabilities: &[(Namespace, &str)],
+    ) -> Result<Vec<(Namespace, String)>, ModelLookupError> {
         let lookup_model_id = normalize_model_id_for_lookup(model_id);
-        let supported_parameters = self
+        let capabilities = self
             .models
             .get(lookup_model_id)
             .ok_or(ModelLookupError::UnknownModel)?;
 
-        Ok(required_parameters
+        Ok(required_capabilities
             .iter()
-            .filter(|required_parameter| !supported_parameters.contains(**required_parameter))
-            .map(|required_parameter| (*required_parameter).to_owned())
+            .filter(|(namespace, name)| !capabilities.contains(*namespace, name))
+            .map(|(namespace, name)| (*namespace, (*name).to_owned()))
             .collect())
+    }
+
+    pub(crate) fn known_names(&self, namespace: Namespace) -> &HashSet<String> {
+        match namespace {
+            Namespace::Param => &self.known_params,
+            Namespace::Input => &self.known_input_modalities,
+            Namespace::Output => &self.known_output_modalities,
+        }
     }
 }
 
-fn normalize_model_id_for_lookup(model_id: &str) -> &str {
+impl ModelCapabilities {
+    fn contains(&self, namespace: Namespace, name: &str) -> bool {
+        match namespace {
+            Namespace::Param => self.params.contains(name),
+            Namespace::Input => self.input_modalities.contains(name),
+            Namespace::Output => self.output_modalities.contains(name),
+        }
+    }
+}
+
+pub(crate) fn normalize_model_id_for_lookup(model_id: &str) -> &str {
     for variant in DYNAMIC_VARIANTS {
         if let Some(base_model_id) = model_id.strip_suffix(variant) {
             return base_model_id;
@@ -79,19 +160,21 @@ fn normalize_model_id_for_lookup(model_id: &str) -> &str {
     model_id
 }
 
-pub(crate) fn model_supports_parameter(
+pub(crate) fn missing_model_capabilities(
     model_id: &str,
-    required_parameter: &'static str,
-) -> Result<bool, ModelLookupError> {
-    Ok(missing_model_parameters(model_id, &[required_parameter])?.is_empty())
+    required_capabilities: &[(Namespace, &str)],
+) -> Result<Vec<(Namespace, String)>, ModelLookupError> {
+    match &*MODELS {
+        Ok(models) => models.missing_capabilities(model_id, required_capabilities),
+        Err(err) => Err(err.clone()),
+    }
 }
 
-pub(crate) fn missing_model_parameters(
-    model_id: &str,
-    required_parameters: &[&str],
-) -> Result<Vec<String>, ModelLookupError> {
+pub(crate) fn known_capability_names(
+    namespace: Namespace,
+) -> Result<&'static HashSet<String>, ModelLookupError> {
     match &*MODELS {
-        Ok(models) => models.supports_parameters(model_id, required_parameters),
+        Ok(models) => Ok(models.known_names(namespace)),
         Err(err) => Err(err.clone()),
     }
 }
@@ -103,84 +186,4 @@ pub(crate) enum ModelLookupError {
 }
 
 #[cfg(test)]
-mod tests {
-    use rstest::rstest;
-
-    use super::{ModelIndex, ModelLookupError};
-
-    const MODELS_JSON: &str = r#"
-        {
-          "data": [
-            {
-              "id": "model/full",
-              "supported_parameters": ["structured_outputs", "tools", "response_format"]
-            },
-            {
-              "id": "model/empty",
-              "supported_parameters": []
-            },
-            {
-              "id": "model/null",
-              "supported_parameters": null
-            },
-            {
-              "id": "model/absent"
-            }
-          ]
-        }
-    "#;
-
-    #[rstest]
-    #[case("model/full", &["tools"], &[])]
-    #[case("model/full:exacto", &["tools"], &[])]
-    #[case("model/full:nitro", &["tools"], &[])]
-    #[case("model/full:floor", &["tools"], &[])]
-    #[case("model/full:online", &["tools"], &[])]
-    #[case("model/full", &["tools", "response_format"], &[])]
-    #[case("model/full", &["seed"], &["seed"])]
-    #[case("model/full:exacto", &["seed"], &["seed"])]
-    #[case("model/full", &["seed", "tools", "top_p"], &["seed", "top_p"])]
-    #[case("model/empty", &["tools"], &["tools"])]
-    #[case("model/null", &["tools"], &["tools"])]
-    #[case("model/absent", &["tools"], &["tools"])]
-    fn reports_missing_parameters(
-        #[case] model_id: &str,
-        #[case] required_parameters: &[&str],
-        #[case] expected_missing: &[&str],
-    ) {
-        let index = ModelIndex::parse_json(MODELS_JSON).expect("test models should parse");
-
-        assert_eq!(
-            index.supports_parameters(model_id, required_parameters),
-            Ok(expected_missing
-                .iter()
-                .map(|parameter| (*parameter).to_owned())
-                .collect()),
-        );
-    }
-
-    #[test]
-    fn reports_unknown_model() {
-        let index = ModelIndex::parse_json(MODELS_JSON).expect("test models should parse");
-
-        assert_eq!(
-            index.supports_parameters("model/unknown", &["tools"]),
-            Err(ModelLookupError::UnknownModel),
-        );
-        assert_eq!(
-            index.supports_parameters("model/unknown:exacto", &["tools"]),
-            Err(ModelLookupError::UnknownModel),
-        );
-        assert_eq!(
-            index.supports_parameters("model/full:free", &["tools"]),
-            Err(ModelLookupError::UnknownModel),
-        );
-    }
-
-    #[test]
-    fn reports_invalid_json() {
-        let error = ModelIndex::parse_json("{").expect_err("invalid JSON should fail");
-
-        assert!(matches!(error, ModelLookupError::InvalidModelsJson(_)));
-    }
-}
+mod tests;

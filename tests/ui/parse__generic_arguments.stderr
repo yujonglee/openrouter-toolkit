@@ -1,0 +1,5 @@
+error: OpenRouter capability paths cannot contain generic arguments
+ --> tests/ui/parse__generic_arguments.rs:3:57
+  |
+3 | const MODEL: &str = model_supports!("qwen/qwen3.7-max", param::<T>::tools);
+  |                                                         ^^^^^

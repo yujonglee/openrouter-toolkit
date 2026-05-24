@@ -1,0 +1,5 @@
+error: OpenRouter model `openrouter/pareto-code` does not support required capability(s): param::structured_outputs, param::tools
+ --> tests/ui/lookup__all_missing.rs:3:37
+  |
+3 | const MODEL: &str = model_supports!("openrouter/pareto-code", param::structured_outputs, param::tools);
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^

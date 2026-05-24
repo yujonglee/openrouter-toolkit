@@ -1,0 +1,5 @@
+error: unknown OpenRouter capability namespace `capability`; expected one of: param, input, output
+ --> tests/ui/capability__unknown_namespace.rs:3:57
+  |
+3 | const MODEL: &str = model_supports!("qwen/qwen3.7-max", capability::tools);
+  |                                                         ^^^^^^^^^^

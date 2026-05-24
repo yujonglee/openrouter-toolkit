@@ -1,5 +1,0 @@
-error: expected string literal
- --> tests/ui/model_supports_non_literal_model.rs:4:37
-  |
-4 | const MODEL: &str = model_supports!(MODEL_ID, "tools");
-  |                                     ^^^^^^^^

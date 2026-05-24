@@ -1,5 +1,0 @@
-error: unknown OpenRouter model `example/not-a-real-model`
- --> tests/ui/model_supports_unknown.rs:3:37
-  |
-3 | const MODEL: &str = model_supports!("example/not-a-real-model", "tools");
-  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^

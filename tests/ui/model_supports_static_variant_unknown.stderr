@@ -1,5 +1,0 @@
-error: unknown OpenRouter model `moonshotai/kimi-k2-0905:free`
- --> tests/ui/model_supports_static_variant_unknown.rs:3:37
-  |
-3 | const MODEL: &str = model_supports!("moonshotai/kimi-k2-0905:free", "tools");
-  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

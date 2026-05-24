@@ -1,0 +1,5 @@
+error: unknown OpenRouter capability `param::zzzzzzzzzz`; known param capabilities: frequency_penalty, include_reasoning, logit_bias, logprobs, max_completion_tokens, max_tokens, min_p, parallel_tool_calls, presence_penalty, reasoning, reasoning_effort, repetition_penalty, response_format, seed, stop, structured_outputs, temperature, tool_choice, tools, top_a, top_k, top_logprobs, top_p, verbosity, web_search_options
+ --> tests/ui/capability__unknown_name_no_suggestion.rs:3:64
+  |
+3 | const MODEL: &str = model_supports!("qwen/qwen3.7-max", param::zzzzzzzzzz);
+  |                                                                ^^^^^^^^^^
