@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 use serde::Deserialize;
 
 const MODELS_JSON: &str = include_str!("../data/models.json");
+const DYNAMIC_VARIANTS: &[&str] = &[":exacto", ":nitro", ":floor", ":online"];
 
 static MODELS: LazyLock<Result<ModelIndex, ModelLookupError>> = LazyLock::new(ModelIndex::parse);
 
@@ -54,9 +55,10 @@ impl ModelIndex {
         model_id: &str,
         required_parameters: &[&str],
     ) -> Result<Vec<String>, ModelLookupError> {
+        let lookup_model_id = normalize_model_id_for_lookup(model_id);
         let supported_parameters = self
             .models
-            .get(model_id)
+            .get(lookup_model_id)
             .ok_or(ModelLookupError::UnknownModel)?;
 
         Ok(required_parameters
@@ -65,6 +67,16 @@ impl ModelIndex {
             .map(|required_parameter| (*required_parameter).to_owned())
             .collect())
     }
+}
+
+fn normalize_model_id_for_lookup(model_id: &str) -> &str {
+    for variant in DYNAMIC_VARIANTS {
+        if let Some(base_model_id) = model_id.strip_suffix(variant) {
+            return base_model_id;
+        }
+    }
+
+    model_id
 }
 
 pub(crate) fn model_supports_parameter(
@@ -120,8 +132,13 @@ mod tests {
 
     #[rstest]
     #[case("model/full", &["tools"], &[])]
+    #[case("model/full:exacto", &["tools"], &[])]
+    #[case("model/full:nitro", &["tools"], &[])]
+    #[case("model/full:floor", &["tools"], &[])]
+    #[case("model/full:online", &["tools"], &[])]
     #[case("model/full", &["tools", "response_format"], &[])]
     #[case("model/full", &["seed"], &["seed"])]
+    #[case("model/full:exacto", &["seed"], &["seed"])]
     #[case("model/full", &["seed", "tools", "top_p"], &["seed", "top_p"])]
     #[case("model/empty", &["tools"], &["tools"])]
     #[case("model/null", &["tools"], &["tools"])]
@@ -148,6 +165,14 @@ mod tests {
 
         assert_eq!(
             index.supports_parameters("model/unknown", &["tools"]),
+            Err(ModelLookupError::UnknownModel),
+        );
+        assert_eq!(
+            index.supports_parameters("model/unknown:exacto", &["tools"]),
+            Err(ModelLookupError::UnknownModel),
+        );
+        assert_eq!(
+            index.supports_parameters("model/full:free", &["tools"]),
             Err(ModelLookupError::UnknownModel),
         );
     }
