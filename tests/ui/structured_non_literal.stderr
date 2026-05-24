@@ -1,0 +1,5 @@
+error: expected string literal
+ --> tests/ui/structured_non_literal.rs:4:39
+  |
+4 | const MODEL: &str = structured_model!(MODEL_ID);
+  |                                       ^^^^^^^^

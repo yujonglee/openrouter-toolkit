@@ -1,0 +1,88 @@
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-openrouter-models
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "::error::OPENROUTER_API_KEY secret is required"
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $OPENROUTER_API_KEY" \
+            --header "Accept: application/json" \
+            --output data/models.json.tmp \
+            https://openrouter.ai/api/v1/models
+
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const models = JSON.parse(fs.readFileSync("data/models.json.tmp", "utf8"));
+
+          if (!models || !Array.isArray(models.data)) {
+            throw new Error("OpenRouter models response must contain a data array");
+          }
+          NODE
+
+          mv data/models.json.tmp data/models.json
+          pnpm format:fix
+
+      - id: changes
+        run: |
+          if git diff --quiet -- data/models.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B update-openrouter-models
+          git add data/models.json
+          git commit -m "Update OpenRouter models"
+          git push --force-with-lease --set-upstream origin update-openrouter-models
+
+      - if: steps.changes.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh pr view update-openrouter-models --json url --jq .url >/dev/null 2>&1; then
+            gh pr edit update-openrouter-models \
+              --title "Update OpenRouter models" \
+              --body "Updates data/models.json from OpenRouter and applies repository formatting."
+          else
+            gh pr create \
+              --head update-openrouter-models \
+              --title "Update OpenRouter models" \
+              --body "Updates data/models.json from OpenRouter and applies repository formatting."
+          fi

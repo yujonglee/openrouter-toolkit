@@ -1,0 +1,5 @@
+error: expected string literal
+ --> tests/ui/model_supports_non_literal_parameter.rs:4:57
+  |
+4 | const MODEL: &str = model_supports!("qwen/qwen3.7-max", PARAMETER);
+  |                                                         ^^^^^^^^^

@@ -1,0 +1,7 @@
+error: unexpected end of input, expected at least one required OpenRouter parameter
+ --> tests/ui/model_supports_trailing_comma.rs:3:21
+  |
+3 | const MODEL: &str = model_supports!("qwen/qwen3.7-max",);
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `model_supports` (in Nightly builds, run with -Z macro-backtrace for more info)

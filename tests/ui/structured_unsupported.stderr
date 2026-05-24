@@ -1,0 +1,5 @@
+error: OpenRouter model `openrouter/pareto-code` does not support `structured_outputs`
+ --> tests/ui/structured_unsupported.rs:3:39
+  |
+3 | const MODEL: &str = structured_model!("openrouter/pareto-code");
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^

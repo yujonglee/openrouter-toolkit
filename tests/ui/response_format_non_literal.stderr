@@ -1,0 +1,5 @@
+error: expected string literal
+ --> tests/ui/response_format_non_literal.rs:4:44
+  |
+4 | const MODEL: &str = response_format_model!(MODEL_ID);
+  |                                            ^^^^^^^^

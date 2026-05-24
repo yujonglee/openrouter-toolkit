@@ -1,0 +1,5 @@
+error: unknown OpenRouter model `example/not-a-real-model`
+ --> tests/ui/structured_unknown.rs:3:39
+  |
+3 | const MODEL: &str = structured_model!("example/not-a-real-model");
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^

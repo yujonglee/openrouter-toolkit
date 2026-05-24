@@ -1,0 +1,11 @@
+{
+  "name": "openrouter-toolkit",
+  "private": true,
+  "scripts": {
+    "format": "oxfmt .",
+    "format:fix": "oxfmt --write ."
+  },
+  "devDependencies": {
+    "oxfmt": "^0.51.0"
+  }
+}
