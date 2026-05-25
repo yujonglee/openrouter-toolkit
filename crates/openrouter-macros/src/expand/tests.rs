@@ -1,15 +1,11 @@
-use std::collections::HashSet;
-
 use rstest::rstest;
 use syn::punctuated::Punctuated;
 use syn::{Path, Token};
 
+use openrouter_check::{format_capabilities, format_capability};
 use openrouter_models::Namespace;
 
-use super::{
-    closest_name, edit_distance, format_capabilities, format_capability, parse_capabilities,
-    parse_capability_path, sorted_names,
-};
+use super::{parse_capabilities, parse_capability_path};
 
 fn parse_path(path: &str) -> Path {
     syn::parse_str(path).expect("test path should parse")
@@ -21,55 +17,6 @@ fn parse_path_list(paths: &[&str]) -> Punctuated<Path, Token![,]> {
         parsed.push(parse_path(path));
     }
     parsed
-}
-
-fn known_param_names() -> HashSet<String> {
-    [
-        "tools",
-        "tool",
-        "response_format",
-        "structured_outputs",
-        "seed",
-    ]
-    .into_iter()
-    .map(str::to_owned)
-    .collect()
-}
-
-#[rstest]
-#[case::both_empty("", "", 0)]
-#[case::left_empty("", "abc", 3)]
-#[case::right_empty("abc", "", 3)]
-#[case::same("abc", "abc", 0)]
-#[case::insert("tool", "tools", 1)]
-#[case::delete("tools", "tool", 1)]
-#[case::substitute("tools", "toolz", 1)]
-#[case::unrelated("alpha", "omega", 4)]
-#[case::unicode("éé", "ee", 2)]
-fn computes_edit_distance(#[case] left: &str, #[case] right: &str, #[case] expected: usize) {
-    assert_eq!(edit_distance(left, right), expected);
-}
-
-#[rstest]
-#[case::empty(HashSet::new(), "tools", None)]
-#[case::too_far(HashSet::from(["omega".to_owned()]), "tools", None)]
-#[case::shorter_tie(HashSet::from(["abcd".to_owned(), "ab".to_owned()]), "ac", Some("ab"))]
-fn finds_closest_name(
-    #[case] known_names: HashSet<String>,
-    #[case] name: &str,
-    #[case] expected: Option<&str>,
-) {
-    assert_eq!(closest_name(name, &known_names), expected);
-}
-
-#[rstest]
-#[case::exact("tools", Some("tools"))]
-#[case::suggestion("toolz", Some("tool"))]
-#[case::too_distant("completely_different", None)]
-fn finds_closest_known_param_name(#[case] name: &str, #[case] expected: Option<&str>) {
-    let known_param_names = known_param_names();
-
-    assert_eq!(closest_name(name, &known_param_names), expected);
 }
 
 #[rstest]
@@ -169,14 +116,7 @@ fn formats_capability(#[case] namespace: Namespace, #[case] name: &str, #[case] 
 #[test]
 fn formats_multiple_capabilities() {
     assert_eq!(
-        format_capabilities([(Namespace::Param, "tools"), (Namespace::Input, "image")].into_iter(),),
+        format_capabilities([(Namespace::Param, "tools"), (Namespace::Input, "image")]),
         "param::tools, input::image",
     );
-}
-
-#[test]
-fn sorts_names() {
-    let names = HashSet::from(["zeta".to_owned(), "alpha".to_owned(), "beta".to_owned()]);
-
-    assert_eq!(sorted_names(&names), vec!["alpha", "beta", "zeta"]);
 }

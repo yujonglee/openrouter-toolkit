@@ -7,8 +7,9 @@ use syn::spanned::Spanned;
 use syn::{parse_macro_input, LitStr, Path};
 
 use crate::input::ModelSupportsInput;
-use openrouter_models::{
-    known_capability_names, missing_model_capabilities, ModelLookupError, Namespace,
+use openrouter_check::{
+    format_capabilities, format_capability, missing_model_capabilities, parse_namespace,
+    validate_capability_name, ModelLookupError, Namespace,
 };
 
 pub(crate) fn model_supports(input: TokenStream) -> TokenStream {
@@ -105,106 +106,15 @@ fn parse_capability_path(path: &Path) -> syn::Result<(Namespace, String)> {
         ));
     }
 
-    let namespace = match namespace_segment.ident.to_string().as_str() {
-        "param" => Namespace::Param,
-        "input" => Namespace::Input,
-        "output" => Namespace::Output,
-        unknown => {
-            return Err(syn::Error::new(
-                namespace_segment.ident.span(),
-                format!(
-                    "unknown OpenRouter capability namespace `{unknown}`; expected one of: param, input, output"
-                ),
-            ));
-        }
-    };
+    let namespace_text = namespace_segment.ident.to_string();
+    let namespace = parse_namespace(&namespace_text)
+        .map_err(|error| syn::Error::new(namespace_segment.ident.span(), error.to_string()))?;
     let name = name_segment.ident.to_string();
 
-    let known_names = known_capability_names(namespace).map_err(|err| match err {
-        ModelLookupError::InvalidModelsJson(message) => syn::Error::new(
-            name_segment.ident.span(),
-            format!("invalid embedded OpenRouter models JSON: {message}"),
-        ),
-        ModelLookupError::UnknownModel => syn::Error::new(
-            name_segment.ident.span(),
-            "failed to load OpenRouter capability names",
-        ),
-    })?;
-
-    if !known_names.contains(&name) {
-        let suggestion = closest_name(&name, known_names)
-            .map(|known_name| {
-                format!(
-                    "; did you mean `{}`?",
-                    format_capability(namespace, known_name)
-                )
-            })
-            .unwrap_or_else(|| {
-                format!(
-                    "; known {} capabilities: {}",
-                    namespace.as_str(),
-                    sorted_names(known_names).join(", ")
-                )
-            });
-
-        return Err(syn::Error::new(
-            name_segment.ident.span(),
-            format!(
-                "unknown OpenRouter capability `{}`{}",
-                format_capability(namespace, &name),
-                suggestion,
-            ),
-        ));
-    }
+    validate_capability_name(namespace, &name)
+        .map_err(|error| syn::Error::new(name_segment.ident.span(), error.to_string()))?;
 
     Ok((namespace, name))
-}
-
-fn format_capabilities<'a>(capabilities: impl Iterator<Item = (Namespace, &'a str)>) -> String {
-    capabilities
-        .map(|(namespace, name)| format_capability(namespace, name))
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn format_capability(namespace: Namespace, name: &str) -> String {
-    format!("{}::{name}", namespace.as_str())
-}
-
-fn sorted_names(names: &HashSet<String>) -> Vec<&str> {
-    let mut names: Vec<_> = names.iter().map(String::as_str).collect();
-    names.sort_unstable();
-    names
-}
-
-fn closest_name<'a>(name: &str, known_names: &'a HashSet<String>) -> Option<&'a str> {
-    known_names
-        .iter()
-        .map(|known_name| (known_name.as_str(), edit_distance(name, known_name)))
-        .filter(|(_, distance)| *distance <= 3)
-        .min_by_key(|(known_name, distance)| (*distance, known_name.len()))
-        .map(|(known_name, _)| known_name)
-}
-
-fn edit_distance(left: &str, right: &str) -> usize {
-    let right_chars: Vec<_> = right.chars().collect();
-    let mut previous: Vec<_> = (0..=right_chars.len()).collect();
-    let mut current = vec![0; right_chars.len() + 1];
-
-    for (left_index, left_char) in left.chars().enumerate() {
-        current[0] = left_index + 1;
-
-        for (right_index, right_char) in right_chars.iter().enumerate() {
-            let insertion = current[right_index] + 1;
-            let deletion = previous[right_index + 1] + 1;
-            let substitution = previous[right_index] + usize::from(left_char != *right_char);
-            current[right_index + 1] = insertion.min(deletion).min(substitution);
-        }
-
-        std::mem::swap(&mut previous, &mut current);
-    }
-
-    previous[right_chars.len()]
 }
 
 fn compile_error(span: &LitStr, message: impl std::fmt::Display) -> TokenStream {

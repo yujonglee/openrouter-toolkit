@@ -1,6 +1,15 @@
 [workspace]
-default-members = [".", "crates/openrouter-models", "crates/openrouter-macros"]
-members = ["crates/openrouter-models", "crates/openrouter-macros"]
+default-members = [
+    ".",
+    "crates/openrouter-check",
+    "crates/openrouter-models",
+    "crates/openrouter-macros",
+]
+members = [
+    "crates/openrouter-check",
+    "crates/openrouter-models",
+    "crates/openrouter-macros",
+]
 resolver = "2"
 
 [workspace.package]
@@ -9,6 +18,7 @@ version = "0.1.0"
 publish = false
 
 [workspace.dependencies]
+openrouter-check = { path = "crates/openrouter-check" }
 openrouter-macros = { path = "crates/openrouter-macros" }
 openrouter-models = { path = "crates/openrouter-models" }
 
@@ -33,3 +43,4 @@ openrouter-models = { workspace = true }
 
 [dev-dependencies]
 rstest = { workspace = true }
+trybuild = { workspace = true }
