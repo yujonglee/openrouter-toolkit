@@ -1,6 +1,11 @@
 use openrouter_toolkit::model_supports;
 
 #[test]
+fn reexports_check_crate_for_macro_diagnostics() {
+    openrouter_toolkit::check("qwen/qwen3.7-max", &["param::tools"]).unwrap();
+}
+
+#[test]
 fn reexports_model_supports_macro() {
     const MODEL: &str = model_supports!("qwen/qwen3.7-max", param::tools);
 

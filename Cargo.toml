@@ -39,6 +39,7 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
+openrouter-check = { workspace = true }
 openrouter-macros = { workspace = true }
 openrouter-models = { workspace = true }
 

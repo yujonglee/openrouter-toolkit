@@ -141,6 +141,7 @@ dependencies = [
 name = "openrouter-toolkit"
 version = "0.1.0"
 dependencies = [
+ "openrouter-check",
  "openrouter-macros",
  "openrouter-models",
  "rstest",
