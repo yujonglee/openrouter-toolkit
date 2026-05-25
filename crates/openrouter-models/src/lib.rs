@@ -221,13 +221,20 @@ impl ModelCapabilities {
 }
 
 pub(crate) fn normalize_model_id_for_lookup(model_id: &str) -> &str {
-    for variant in DYNAMIC_VARIANTS {
-        if let Some(base_model_id) = model_id.strip_suffix(variant) {
-            return base_model_id;
+    let mut lookup_model_id = model_id;
+
+    while let Some(base_model_id) = DYNAMIC_VARIANTS
+        .iter()
+        .find_map(|variant| lookup_model_id.strip_suffix(variant))
+    {
+        if base_model_id == lookup_model_id {
+            break;
         }
+
+        lookup_model_id = base_model_id;
     }
 
-    model_id
+    lookup_model_id
 }
 
 pub fn missing_model_capabilities(
@@ -249,9 +256,11 @@ pub fn known_capability_names(
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum ModelLookupError {
+    #[error("unknown OpenRouter model")]
     UnknownModel,
+    #[error("invalid embedded OpenRouter models JSON: {0}")]
     InvalidModelsJson(String),
 }
 

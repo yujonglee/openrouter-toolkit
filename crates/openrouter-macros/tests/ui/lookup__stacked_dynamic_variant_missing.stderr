@@ -1,0 +1,5 @@
+error: OpenRouter model `perceptron/perceptron-mk1:exacto:nitro` does not support required capability(s): param::tools
+ --> tests/ui/lookup__stacked_dynamic_variant_missing.rs:3:37
+  |
+3 | const MODEL: &str = model_supports!("perceptron/perceptron-mk1:exacto:nitro", param::tools);
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

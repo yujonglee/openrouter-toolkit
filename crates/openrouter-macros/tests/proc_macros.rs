@@ -5,6 +5,7 @@ use rstest::rstest;
 #[case::multiple("tests/ui/pass__multiple.rs")]
 #[case::trailing_comma("tests/ui/pass__trailing_comma.rs")]
 #[case::dynamic_variant("tests/ui/pass__dynamic_variant.rs")]
+#[case::stacked_dynamic_variant("tests/ui/pass__stacked_dynamic_variant.rs")]
 #[case::input_modality("tests/ui/pass__input_modality.rs")]
 #[case::output_modality("tests/ui/pass__output_modality.rs")]
 #[case::mixed_namespaces("tests/ui/pass__mixed_namespaces.rs")]
@@ -39,6 +40,7 @@ fn ui_capability_errors(#[case] path: &str) {
 #[case::param_missing("tests/ui/lookup__param_missing.rs")]
 #[case::all_missing("tests/ui/lookup__all_missing.rs")]
 #[case::dynamic_variant_missing("tests/ui/lookup__dynamic_variant_missing.rs")]
+#[case::stacked_dynamic_variant_missing("tests/ui/lookup__stacked_dynamic_variant_missing.rs")]
 #[case::input_modality_missing("tests/ui/lookup__input_modality_missing.rs")]
 fn ui_lookup_errors(#[case] path: &str) {
     trybuild::TestCases::new().compile_fail(path);

@@ -20,9 +20,13 @@ fn owned_capabilities(capabilities: &[(Namespace, &str)]) -> Vec<(Namespace, Str
 #[case::nitro_variant("model/full:nitro", &[(Namespace::Param, "tools")], &[])]
 #[case::floor_variant("model/full:floor", &[(Namespace::Param, "tools")], &[])]
 #[case::online_variant("model/full:online", &[(Namespace::Input, "image")], &[])]
+#[case::stacked_dynamic_variants("model/full:exacto:nitro", &[(Namespace::Param, "tools")], &[])]
+#[case::static_then_dynamic_variant("model/full:free:online", &[(Namespace::Param, "tools")], &[])]
+#[case::static_then_stacked_dynamic_variants("model/full:free:online:exacto", &[(Namespace::Param, "tools")], &[])]
 #[case::all_namespaces("model/full", &[(Namespace::Param, "tools"), (Namespace::Param, "response_format"), (Namespace::Input, "image"), (Namespace::Output, "text")], &[])]
 #[case::missing_param("model/full", &[(Namespace::Param, "seed")], &[(Namespace::Param, "seed")])]
 #[case::missing_input_variant("model/full:exacto", &[(Namespace::Input, "audio")], &[(Namespace::Input, "audio")])]
+#[case::static_variant_missing_input("model/full:free:online", &[(Namespace::Input, "image")], &[(Namespace::Input, "image")])]
 #[case::mixed_missing_preserves_order("model/full", &[(Namespace::Param, "seed"), (Namespace::Param, "tools"), (Namespace::Output, "audio")], &[(Namespace::Param, "seed"), (Namespace::Output, "audio")])]
 #[case::empty_model("model/empty", &[(Namespace::Param, "tools")], &[(Namespace::Param, "tools")])]
 #[case::null_fields("model/null", &[(Namespace::Input, "image")], &[(Namespace::Input, "image")])]
@@ -43,7 +47,7 @@ fn reports_missing_capabilities(
 #[rstest]
 #[case::unknown_base("model/unknown")]
 #[case::unknown_dynamic_variant("model/unknown:exacto")]
-#[case::static_variant_is_not_stripped("model/full:free")]
+#[case::unknown_suffix_is_not_stripped("model/full:turbo")]
 fn reports_unknown_model(synthetic_index: &ModelIndex, #[case] model_id: &str) {
     assert_eq!(
         synthetic_index.missing_capabilities(model_id, &[(Namespace::Param, "tools")]),
@@ -77,8 +81,12 @@ fn tracks_known_capability_names(
 #[case::floor("model/full:floor", "model/full")]
 #[case::online("model/full:online", "model/full")]
 #[case::static_variant("model/full:free", "model/full:free")]
+#[case::stacked_dynamic_variants("model/full:exacto:nitro", "model/full")]
+#[case::stacked_dynamic_variants_reverse_order("model/full:nitro:exacto", "model/full")]
+#[case::static_then_dynamic_variant("model/full:free:online", "model/full:free")]
+#[case::static_then_stacked_dynamic_variants("model/full:free:online:exacto", "model/full:free")]
+#[case::unknown_suffix("model/full:turbo", "model/full:turbo")]
 #[case::suffix_only(":nitro", "")]
-#[case::multi_suffix("model/full:exacto:nitro", "model/full:exacto")]
 fn normalizes_dynamic_variants(#[case] model_id: &str, #[case] expected: &str) {
     assert_eq!(normalize_model_id_for_lookup(model_id), expected);
 }

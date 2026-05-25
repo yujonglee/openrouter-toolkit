@@ -1,14 +1,13 @@
+mod error;
 mod format;
 mod parse;
 mod suggest;
 
 use std::collections::HashSet;
 
+pub use crate::error::Error;
 pub use crate::format::{format_capabilities, format_capability, sorted_names};
-pub use crate::parse::{
-    parse_capability, parse_namespace, validate_capability_name, CapabilityNameError,
-    InvalidCapabilityPath, UnknownCapability, UnknownNamespace,
-};
+pub use crate::parse::{parse_capability, parse_namespace, validate_capability_name};
 pub use openrouter_models::{missing_model_capabilities, ModelLookupError, Namespace};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -39,8 +38,8 @@ pub fn check(model: &str, capabilities: &[&str]) -> Result<(), Vec<Diagnostic>> 
             Ok(capability) => capability,
             Err(error) => {
                 diagnostics.push(Diagnostic {
-                    message: error.message,
-                    kind: DiagnosticKind::InvalidCapabilityPath,
+                    message: error.to_string(),
+                    kind: diagnostic_kind(&error),
                     source_index: Some(source_index),
                 });
                 continue;
@@ -50,7 +49,7 @@ pub fn check(model: &str, capabilities: &[&str]) -> Result<(), Vec<Diagnostic>> 
         if let Err(error) = validate_capability_name(namespace, &name) {
             diagnostics.push(Diagnostic {
                 message: error.to_string(),
-                kind: DiagnosticKind::UnknownCapability,
+                kind: diagnostic_kind(&error),
                 source_index: Some(source_index),
             });
             continue;
@@ -104,5 +103,17 @@ pub fn check(model: &str, capabilities: &[&str]) -> Result<(), Vec<Diagnostic>> 
             kind: DiagnosticKind::InvalidModelsJson,
             source_index: None,
         }]),
+    }
+}
+
+fn diagnostic_kind(error: &Error) -> DiagnosticKind {
+    match error {
+        Error::InvalidCapabilityPath { .. } => DiagnosticKind::InvalidCapabilityPath,
+        Error::UnknownNamespace { .. } => DiagnosticKind::UnknownNamespace,
+        Error::ModelLookup(ModelLookupError::InvalidModelsJson(_)) => {
+            DiagnosticKind::InvalidModelsJson
+        }
+        Error::ModelLookup(ModelLookupError::UnknownModel) => DiagnosticKind::UnknownModel,
+        Error::UnknownCapability { .. } => DiagnosticKind::UnknownCapability,
     }
 }

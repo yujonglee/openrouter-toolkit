@@ -16,6 +16,14 @@ pub(crate) const SYNTHETIC_MODELS_JSON: &str = r#"
       }
     },
     {
+      "id": "model/full:free",
+      "supported_parameters": ["tools"],
+      "architecture": {
+        "input_modalities": ["text"],
+        "output_modalities": ["text"]
+      }
+    },
+    {
       "id": "model/empty",
       "supported_parameters": [],
       "architecture": {
