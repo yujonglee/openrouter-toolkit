@@ -46,34 +46,12 @@ jobs:
           cargo test -p openrouter-models raw_openrouter_models_snapshot_is_valid
           pnpm format:fix
 
-      - id: changes
-        run: |
-          if git diff --quiet -- crates/openrouter-models/data/models.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - if: steps.changes.outputs.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B update-openrouter-models
-          git add crates/openrouter-models/data/models.json
-          git commit -m "Update OpenRouter models"
-          git push --force-with-lease --set-upstream origin update-openrouter-models
-
-      - if: steps.changes.outputs.changed == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh pr view update-openrouter-models --json url --jq .url >/dev/null 2>&1; then
-            gh pr edit update-openrouter-models \
-              --title "Update OpenRouter models" \
-              --body "Updates crates/openrouter-models/data/models.json from OpenRouter and applies repository formatting."
-          else
-            gh pr create \
-              --head update-openrouter-models \
-              --title "Update OpenRouter models" \
-              --body "Updates crates/openrouter-models/data/models.json from OpenRouter and applies repository formatting."
-          fi
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: Update OpenRouter models
+          title: Update OpenRouter models
+          body: Updates crates/openrouter-models/data/models.json from OpenRouter and applies repository formatting.
+          branch: update-openrouter-models
+          base: main
+          add-paths: |
+            crates/openrouter-models/data/models.json
